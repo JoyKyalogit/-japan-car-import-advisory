@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: japan-car-import-advisory
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///data/japan_cars.db
+      - key: USE_LIVE_EXCHANGE_RATE
+        value: "true"
+      - key: USD_TO_KES
+        value: "130"
+      - key: JPY_TO_USD
+        value: "0.0067"
+      - key: MODEL_PATH
+        value: models/price_predictor.joblib
+      - key: SCRAPER_USE_SAMPLE_DATA
+        value: "false"

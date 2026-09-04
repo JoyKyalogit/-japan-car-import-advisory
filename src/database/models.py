@@ -1,4 +1,6 @@
 from datetime import datetime
+from pathlib import Path
+import shutil
 
 from sqlalchemy import (
     Column,
@@ -8,10 +10,11 @@ from sqlalchemy import (
     String,
     Text,
     create_engine,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from src.config import settings
+from src.config import PROJECT_ROOT, settings
 
 
 class Base(DeclarativeBase):
@@ -95,7 +98,46 @@ def get_session():
     return Session()
 
 
+def _seed_demo_sqlite_if_needed() -> None:
+    """Copy bundled demo DB when the runtime SQLite file is missing or empty."""
+    if not settings.database_url.startswith("sqlite"):
+        return
+
+    db_path = Path(settings.database_url.replace("sqlite:///", "", 1))
+    if not db_path.is_absolute():
+        db_path = PROJECT_ROOT / db_path
+
+    demo_path = settings.data_dir / "demo" / "japan_cars.db"
+    if not demo_path.exists():
+        return
+
+    needs_seed = not db_path.exists() or db_path.stat().st_size == 0
+    if not needs_seed and db_path.exists():
+        try:
+            engine = create_engine(
+                f"sqlite:///{db_path}",
+                connect_args={"check_same_thread": False},
+            )
+            with engine.connect() as conn:
+                tables = conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name='car_listings'")
+                ).fetchone()
+                if tables:
+                    count = conn.execute(text("SELECT COUNT(*) FROM car_listings")).scalar() or 0
+                    needs_seed = count == 0
+                else:
+                    needs_seed = True
+            engine.dispose()
+        except Exception:
+            needs_seed = True
+
+    if needs_seed:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(demo_path, db_path)
+
+
 def init_db():
+    _seed_demo_sqlite_if_needed()
     engine = get_engine()
     Base.metadata.create_all(engine)
     _ensure_columns(engine)

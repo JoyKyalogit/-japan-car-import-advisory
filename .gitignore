@@ -33,5 +33,7 @@ Thumbs.db
 # Large / regenerable runtime artifacts (keep schema & small samples if needed)
 data/**/*.db
 data/**/*.db-*
+!data/demo/
+!data/demo/*.db
 data/raw/*.csv
 *.log
