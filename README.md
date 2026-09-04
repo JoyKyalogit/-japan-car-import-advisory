@@ -6,17 +6,18 @@ Built to demonstrate practical skills across **web scraping, ETL, domain costing
 
 ## Live demo
 
-> **Not hosted yet.** After you deploy (steps below), put the public URL here, e.g.  
-> **Live demo:** https://japan-car-import-advisory.onrender.com
+**[Open live demo](https://japan-car-import-advisory.onrender.com)**
+
+Hosted on Render (free tier). The first load after idle time can take ~30–60 seconds while the service wakes up.
 
 ### Deploy on Render (free)
 
 1. Go to [https://render.com](https://render.com) → **New** → **Blueprint**
-2. Connect GitHub and select `JoyKyalogit/-japan-car-import-advisory` (or rename the repo first)
+2. Connect GitHub and select this repository
 3. Render reads `render.yaml` and builds the Docker image with the bundled demo database (~1,700 Japan listings + ~1,600 Kenya price groups)
-4. When the service is **Live**, open the `.onrender.com` URL and paste it into this README section
+4. When the service is **Live**, open the `.onrender.com` URL
 
-Local-only preview (no public URL):
+Local-only preview:
 
 ```bash
 uv run python scripts/run_server.py
