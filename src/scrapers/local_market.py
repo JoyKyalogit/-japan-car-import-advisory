@@ -13,6 +13,10 @@ from src.scrapers.sample_data import generate_local_market_prices
 
 logger = logging.getLogger(__name__)
 
+# Kenya used/new car sanity bounds — reject scrape noise (phones, IDs, bad JSON).
+MIN_LOCAL_PRICE_KES = 400_000
+MAX_LOCAL_PRICE_KES = 80_000_000
+
 SOURCE_SCRAPERS = {
     "cheki": ChekiScraper,
     "jiji": JijiScraper,
@@ -37,10 +41,20 @@ def listings_to_market_prices(listings: list[LocalListingData]) -> pd.DataFrame:
     if df.empty:
         return df
 
+    before = len(df)
+    df = df[
+        (df["price_kes"] >= MIN_LOCAL_PRICE_KES) & (df["price_kes"] <= MAX_LOCAL_PRICE_KES)
+    ]
+    dropped = before - len(df)
+    if dropped:
+        logger.warning("Dropped %d local listings outside KES %s–%s", dropped, f"{MIN_LOCAL_PRICE_KES:,}", f"{MAX_LOCAL_PRICE_KES:,}")
+    if df.empty:
+        return df
+
     grouped = (
         df.groupby(["make", "model", "year"], as_index=False)
         .agg(
-            avg_price_kes=("price_kes", "mean"),
+            avg_price_kes=("price_kes", "median"),
             min_price_kes=("price_kes", "min"),
             max_price_kes=("price_kes", "max"),
             listing_count=("price_kes", "count"),

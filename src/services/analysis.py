@@ -183,7 +183,9 @@ def get_local_price(session: Session, make: str, model: str, year: int) -> float
         .first()
     )
     if record:
-        return record.avg_price_kes
+        price = float(record.avg_price_kes or 0)
+        if 400_000 <= price <= 80_000_000:
+            return price
 
     # Search same make across nearby years, then pick the closest compatible model.
     candidates = (
@@ -201,11 +203,15 @@ def get_local_price(session: Session, make: str, model: str, year: int) -> float
 def _pick_local_price(model: str, year: int, candidates: list[LocalMarketPrice]) -> float | None:
     scored: list[tuple[int, int, int, float]] = []
     for candidate in candidates:
+        price = float(candidate.avg_price_kes or 0)
+        # Skip scrape garbage / phone-number-like prices
+        if price < 400_000 or price > 80_000_000:
+            continue
         if not models_compatible(model, candidate.model):
             continue
         year_distance = abs(int(candidate.year) - year)
         specificity = len(normalize_model_name(candidate.model))
-        scored.append((year_distance, specificity, int(candidate.id or 0), float(candidate.avg_price_kes)))
+        scored.append((year_distance, specificity, int(candidate.id or 0), price))
 
     if not scored:
         return None
@@ -235,8 +241,11 @@ def _local_price_from_index(
     for key in make_keys:
         exact_pool = by_make_year.get((key, year), [])
         for candidate in exact_pool:
+            price = float(candidate.avg_price_kes or 0)
+            if price < 400_000 or price > 80_000_000:
+                continue
             if normalize_model_name(candidate.model) == normalize_model_name(model):
-                return float(candidate.avg_price_kes)
+                return price
 
     nearby: list[LocalMarketPrice] = []
     for key in make_keys:
