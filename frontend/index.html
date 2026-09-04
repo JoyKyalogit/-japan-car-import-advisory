@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Japan Car Import Advisory</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div>
+        <h1>🚗 Japan Car Import Advisory</h1>
+        <p>Compare import costs from Japan vs buying locally in Kenya</p>
+      </div>
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat"><span id="stat-listings">—</span><label>Listings</label></div>
+        <div class="stat"><span id="stat-rate">—</span><label>USD → KES</label></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="compare">Compare Cars</button>
+    <button class="tab" data-tab="predict">Price Predictor</button>
+    <button class="tab" data-tab="market">Market Data</button>
+    <button class="tab" data-tab="savings">Savings Analysis</button>
+  </nav>
+
+  <main class="container">
+    <!-- Compare Cars -->
+    <section id="tab-compare" class="panel active">
+      <h2>Compare Import vs Local Price</h2>
+      <p class="subtitle">Select a car to instantly see import cost, local price, and savings.</p>
+
+      <div class="filters">
+        <div class="field">
+          <label>Make</label>
+          <select id="filter-make"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <select id="filter-model"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label>Year from</label>
+          <input type="number" id="filter-year-min" min="2018" value="2018" />
+        </div>
+        <div class="field">
+          <label>Year to</label>
+          <input type="number" id="filter-year-max" min="2018" value="2026" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Search cars</label>
+        <input type="text" id="car-search" placeholder="Type make, model, or year..." />
+      </div>
+
+      <div class="field">
+        <label>Select a car <span id="car-count" class="count-badge"></span></label>
+        <select id="car-select" size="12"></select>
+      </div>
+
+      <div id="compare-result" class="hidden">
+        <div class="vehicle-info" id="vehicle-info"></div>
+
+        <div class="metrics">
+          <div class="metric-card">
+            <label>Japan Purchase</label>
+            <span id="m-purchase">—</span>
+          </div>
+          <div class="metric-card highlight">
+            <label>Full Import Cost</label>
+            <span id="m-import">—</span>
+          </div>
+          <div class="metric-card">
+            <label>Local Market</label>
+            <span id="m-local">—</span>
+          </div>
+          <div class="metric-card" id="savings-card">
+            <label>Potential Savings</label>
+            <span id="m-savings">—</span>
+          </div>
+        </div>
+
+        <div id="recommendation" class="banner"></div>
+
+        <div class="charts">
+          <canvas id="compare-chart"></canvas>
+          <canvas id="breakdown-chart"></canvas>
+        </div>
+
+        <details class="breakdown-details">
+          <summary>Full import cost breakdown</summary>
+          <table id="breakdown-table">
+            <thead><tr><th>Item</th><th>Amount (KES)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </details>
+      </div>
+    </section>
+
+    <!-- Price Predictor -->
+    <section id="tab-predict" class="panel">
+      <h2>ML Price Predictor</h2>
+      <p class="subtitle">Predict Japan car price and estimated import cost.</p>
+
+      <form id="predict-form" class="form-grid">
+        <div class="field">
+          <label>Make</label>
+          <select name="make" id="predict-make" required></select>
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <select name="model" id="predict-model" required></select>
+        </div>
+        <div class="field">
+          <label>Year</label>
+          <select name="year" id="predict-year" required></select>
+        </div>
+        <div class="field">
+          <label>Mileage (km)</label>
+          <select name="mileage_km" id="predict-mileage" required></select>
+        </div>
+        <div class="field">
+          <label>Engine (cc)</label>
+          <select name="engine_cc" id="predict-engine" required></select>
+        </div>
+        <div class="field">
+          <label>Fuel</label>
+          <select name="fuel_type" id="predict-fuel" required></select>
+        </div>
+        <div class="field">
+          <label>Transmission</label>
+          <select name="transmission" id="predict-transmission" required></select>
+        </div>
+        <div class="field">
+          <label>Body</label>
+          <select name="body_type" id="predict-body" required></select>
+        </div>
+      </form>
+      <button class="btn primary" id="predict-btn">Predict Price</button>
+      <div id="predict-result" class="hidden"></div>
+    </section>
+
+    <!-- Market Data -->
+    <section id="tab-market" class="panel">
+      <h2>Market Data</h2>
+      <div class="metrics" id="market-summary"></div>
+      <div class="table-wrap">
+        <table id="market-table">
+          <thead>
+            <tr><th>Make</th><th>Model</th><th>Year</th><th>Mileage</th><th>Engine</th><th>Fuel</th><th>USD</th><th>JPY</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <canvas id="market-chart"></canvas>
+    </section>
+
+    <!-- Savings Analysis -->
+    <section id="tab-savings" class="panel">
+      <h2>Savings Analysis</h2>
+      <div class="metrics" id="savings-summary"></div>
+      <div class="table-wrap">
+        <table id="savings-table">
+          <thead>
+            <tr><th>Vehicle</th><th>Import (KES)</th><th>Local (KES)</th><th>Savings (KES)</th><th>Savings %</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <canvas id="savings-chart"></canvas>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Japan Car Import Advisory Platform — Kenya
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

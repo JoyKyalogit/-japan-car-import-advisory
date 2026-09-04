@@ -1,0 +1,33 @@
+{
+  "source": "KPA Tariff Book PDF",
+  "url": "https://portal.kpa.co.ke/web-uploads/documents/80299801-e056-4c46-a3dd-2454c8a42a33.pdf",
+  "updated_at": "2026-05-20T12:51:06.697792",
+  "tiers": {
+    "tier1": {
+      "label": "Saloon, Station Wagon, Van, CUV not exceeding 1.5 MT",
+      "stevedoring_usd": 80.0,
+      "wharfage_usd": 75.0
+    },
+    "tier2": {
+      "label": "Station Wagon, Pick-up, SUV, CUV not exceeding 2.0 MT",
+      "stevedoring_usd": 105.0,
+      "wharfage_usd": 90.0
+    },
+    "tier3": {
+      "label": "Mid sized Truck, Minibus, Tractor not exceeding 5.0 MT",
+      "stevedoring_usd": 200.0,
+      "wharfage_usd": 200.0
+    }
+  },
+  "body_type_map": {
+    "Hatchback": "tier1",
+    "Sedan": "tier1",
+    "Coupe": "tier1",
+    "Wagon": "tier1",
+    "Minivan": "tier2",
+    "SUV": "tier2",
+    "Pickup": "tier2",
+    "Van": "tier2"
+  },
+  "notes": "Port charge = stevedoring (Clause 13.3) + wharfage (Clause 17.15) for RoRo self-propelled units. Storage first 5 days free for domestic imports."
+}

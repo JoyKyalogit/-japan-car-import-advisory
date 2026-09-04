@@ -1,0 +1,69 @@
+import logging
+import re
+
+from bs4 import BeautifulSoup
+
+from src.scrapers.base import BaseScraper, CarListingData
+from src.utils.helpers import jpy_to_usd, normalize_make_model, parse_mileage, parse_price, parse_year
+
+logger = logging.getLogger(__name__)
+
+
+class SBTJapanScraper(BaseScraper):
+    platform_name = "SBT Japan"
+    base_url = "https://www.sbtjapan.com"
+
+    def build_search_url(self, page: int = 1) -> str:
+        return f"{self.base_url}/used-cars/toyota?page={page}&year_from=2018"
+
+    def parse_listing_page(self, soup: BeautifulSoup) -> list[CarListingData]:
+        listings: list[CarListingData] = []
+        cards = soup.select(".product-item, .car-item, .vehicle-card, article")
+
+        for card in cards:
+            try:
+                title_el = card.select_one("h2, h3, .title, .car-name, a")
+                price_el = card.select_one(".price, .car-price, [class*='price']")
+                link_el = card.select_one("a[href]")
+                img_el = card.select_one("img")
+
+                title = title_el.get_text(strip=True) if title_el else None
+                make, model = normalize_make_model(title or "")
+                price_jpy = parse_price(price_el.get_text() if price_el else "")
+                year = parse_year(title or "")
+
+                mileage_el = card.find(string=re.compile(r"km|mileage", re.I))
+                mileage = parse_mileage(str(mileage_el)) if mileage_el else None
+
+                listing_url = link_el["href"] if link_el and link_el.get("href") else None
+                if listing_url and listing_url.startswith("/"):
+                    listing_url = f"{self.base_url}{listing_url}"
+
+                listing_id = None
+                if listing_url:
+                    match = re.search(r"/(\d+)/?$", listing_url)
+                    listing_id = match.group(1) if match else listing_url.split("/")[-1]
+
+                if not title or not price_jpy:
+                    continue
+
+                listings.append(
+                    CarListingData(
+                        source_platform=self.platform_name,
+                        listing_id=listing_id,
+                        title=title,
+                        make=make,
+                        model=model,
+                        year=year,
+                        mileage_km=mileage,
+                        price_jpy=price_jpy,
+                        price_usd=jpy_to_usd(price_jpy),
+                        listing_url=listing_url,
+                        image_url=img_el.get("src") if img_el else None,
+                        location="Japan",
+                    )
+                )
+            except Exception as exc:
+                logger.debug("SBT parse error: %s", exc)
+
+        return listings

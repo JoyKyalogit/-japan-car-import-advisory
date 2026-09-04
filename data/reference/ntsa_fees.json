@@ -1,0 +1,66 @@
+{
+  "source": "Kenya Law \u2014 Traffic Rules + Registration Plates Rules",
+  "traffic_rules_url": "https://new.kenyalaw.org/akn/ke/act/gn/1953/1902/eng@2022-12-31/source",
+  "registration_plates_url": "https://new.kenyalaw.org/akn/ke/act/ln/2016/62/eng@2022-12-31/source",
+  "updated_at": "2026-05-20T13:59:00.089705",
+  "registration_tiers": [
+    {
+      "max_cc": 1000,
+      "fee_kes": 1700,
+      "label": "not exceeding 1,000 cc"
+    },
+    {
+      "max_cc": 1200,
+      "fee_kes": 2100,
+      "label": "exceeding 1,000 cc but not exceeding 1,200 cc"
+    },
+    {
+      "max_cc": 1500,
+      "fee_kes": 2300,
+      "label": "exceeding 1,200 cc but not exceeding 1,500 cc"
+    },
+    {
+      "max_cc": 1700,
+      "fee_kes": 2800,
+      "label": "exceeding 1,500 cc but not exceeding 1,700 cc"
+    },
+    {
+      "max_cc": 2000,
+      "fee_kes": 3300,
+      "label": "exceeding 1,700 cc but not exceeding 2,000 cc"
+    },
+    {
+      "max_cc": 2500,
+      "fee_kes": 5100,
+      "label": "exceeding 2,000 cc but not exceeding 2,500 cc"
+    },
+    {
+      "max_cc": 3000,
+      "fee_kes": 7000,
+      "label": "exceeding 2,500 cc but not exceeding 3,000 cc"
+    },
+    {
+      "max_cc": null,
+      "fee_kes": 8300,
+      "label": "exceeding 3,000 cc"
+    }
+  ],
+  "inspection_tiers": [
+    {
+      "max_cc": 3000,
+      "fee_kes": 2600,
+      "label": "up to 3,000 cc"
+    },
+    {
+      "max_cc": null,
+      "fee_kes": 3900,
+      "label": "over 3,000 cc"
+    }
+  ],
+  "plate_fees": {
+    "registration_plates_pair_kes": 3000,
+    "third_license_kes": 700,
+    "motorcycle_single_plate_kes": 1500
+  },
+  "notes": "Import registration total = original registration fee (Traffic Rules s.6) + reflective plates + third licence sticker (LN 62/2016) + pre-registration inspection (Traffic Rules s.7)."
+}
