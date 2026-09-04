@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
+from functools import lru_cache
 
 import pandas as pd
 
@@ -29,6 +30,7 @@ def _crsp_path():
     return settings.data_dir / "reference" / "crsp.csv"
 
 
+@lru_cache(maxsize=1)
 def load_crsp_table() -> pd.DataFrame:
     path = _crsp_path()
     if not path.exists():
@@ -65,6 +67,24 @@ def _score_match(model_key: str, row_model: str, engine_cc: int | None, row_engi
     return score
 
 
+@lru_cache(maxsize=1)
+def _crsp_by_make() -> dict[str, list[dict]]:
+    table = load_crsp_table()
+    if table.empty or "make" not in table.columns:
+        return {}
+    grouped: dict[str, list[dict]] = {}
+    for _, row in table.iterrows():
+        make = str(row.get("make", "")).strip().lower()
+        grouped.setdefault(make, []).append(
+            {
+                "model": _normalize(str(row.get("model", ""))),
+                "engine_cc": row.get("engine_cc"),
+                "crsp_kes": float(row["crsp_kes"]),
+            }
+        )
+    return grouped
+
+
 def lookup_crsp(
     make: str | None,
     model: str | None,
@@ -74,24 +94,18 @@ def lookup_crsp(
     if not make or not model:
         return None
 
-    table = load_crsp_table()
-    if table.empty:
+    candidates = _crsp_by_make().get(_normalize(make))
+    if not candidates:
         return None
 
-    make_key = _normalize(make).title()
     model_key = _normalize(model)
-    candidates = table[table["make"].astype(str).str.lower() == make_key.lower()]
-    if candidates.empty:
-        return None
-
     best_score = -1
     best_value = None
-    for _, row in candidates.iterrows():
-        row_model = _normalize(str(row.get("model", "")))
-        score = _score_match(model_key, row_model, engine_cc, row.get("engine_cc"))
+    for row in candidates:
+        score = _score_match(model_key, row["model"], engine_cc, row.get("engine_cc"))
         if score > best_score:
             best_score = score
-            best_value = float(row["crsp_kes"])
+            best_value = row["crsp_kes"]
 
     if best_score <= 0:
         return None
@@ -118,7 +132,8 @@ def customs_value_kes(
     if crsp:
         depreciated = crsp * depreciation_factor(year)
         value = max(cif_kes, depreciated)
-        source = load_crsp_table()["source"].iloc[0] if "source" in load_crsp_table().columns else "KRA CRSP"
+        table = load_crsp_table()
+        source = table["source"].iloc[0] if "source" in table.columns and len(table) else "KRA CRSP"
         return round(value, 2), f"max(CIF, depreciated CRSP from {source})"
 
     return round(cif_kes, 2), "CIF"

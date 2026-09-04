@@ -195,7 +195,10 @@ def get_local_price(session: Session, make: str, model: str, year: int) -> float
         )
         .all()
     )
+    return _pick_local_price(model, year, candidates)
 
+
+def _pick_local_price(model: str, year: int, candidates: list[LocalMarketPrice]) -> float | None:
     scored: list[tuple[int, int, int, float]] = []
     for candidate in candidates:
         if not models_compatible(model, candidate.model):
@@ -211,19 +214,65 @@ def get_local_price(session: Session, make: str, model: str, year: int) -> float
     return scored[0][3]
 
 
+def _local_price_from_index(
+    make: str,
+    model: str,
+    year: int,
+    by_make_year: dict[tuple[str, int], list[LocalMarketPrice]],
+    by_make: dict[str, list[LocalMarketPrice]],
+) -> float | None:
+    """In-memory local price lookup (same rules as get_local_price)."""
+    year = int(year)
+    make_key = (make or "").strip().lower()
+    make_keys = [make_key]
+    if " " in make_key:
+        make_keys.append(make_key.split()[0])
+    # Common scrape truncations / casing variants
+    aliases = {"land rover": "land", "mercedes-benz": "mercedes", "mercedes benz": "mercedes"}
+    if make_key in aliases:
+        make_keys.append(aliases[make_key])
+
+    for key in make_keys:
+        exact_pool = by_make_year.get((key, year), [])
+        for candidate in exact_pool:
+            if normalize_model_name(candidate.model) == normalize_model_name(model):
+                return float(candidate.avg_price_kes)
+
+    nearby: list[LocalMarketPrice] = []
+    for key in make_keys:
+        for y in range(year - _MAX_YEAR_DISTANCE, year + _MAX_YEAR_DISTANCE + 1):
+            nearby.extend(by_make_year.get((key, y), []))
+    if not nearby:
+        for key in make_keys:
+            nearby.extend(
+                [c for c in by_make.get(key, []) if abs(int(c.year) - year) <= _MAX_YEAR_DISTANCE]
+            )
+    return _pick_local_price(model, year, nearby)
+
+
 def estimate_for_listing(row: dict | pd.Series, local_market_kes: float | None = None) -> ImportCostBreakdown:
     cf_price = row.get("cf_price_usd")
     cf_price_usd = float(cf_price) if pd.notna(cf_price) else None
+
+    raw_cc = row.get("engine_cc")
+    if pd.notna(raw_cc) and float(raw_cc) > 0:
+        engine_cc = int(float(raw_cc))
+    else:
+        engine_cc = 1500
+
+    raw_year = row.get("year")
+    year = int(float(raw_year)) if pd.notna(raw_year) else None
+
     return calculate_import_cost(
         purchase_price_usd=float(row["price_usd"]),
-        engine_cc=int(row.get("engine_cc") or 1500),
+        engine_cc=engine_cc,
         fuel_type=row.get("fuel_type") or "Petrol",
         body_type=row.get("body_type") or "Sedan",
         local_market_kes=local_market_kes,
         cf_price_usd=cf_price_usd,
         make=row.get("make"),
         model=row.get("model"),
-        year=int(row["year"]) if pd.notna(row.get("year")) else None,
+        year=year,
     )
 
 
@@ -256,31 +305,51 @@ def build_savings_analysis(session: Session, listings_df: pd.DataFrame, limit: i
     rows = []
     data = listings_df.head(limit) if limit else listings_df
 
+    # Load Kenya prices once; per-row SQL was too slow for the Savings tab.
+    local_rows = session.query(LocalMarketPrice).all()
+    by_make_year: dict[tuple[str, int], list[LocalMarketPrice]] = {}
+    by_make: dict[str, list[LocalMarketPrice]] = {}
+    for item in local_rows:
+        make_key = (item.make or "").strip().lower()
+        by_make_year.setdefault((make_key, int(item.year)), []).append(item)
+        by_make.setdefault(make_key, []).append(item)
+        # Handle truncated scrapes like "Land" for "Land Rover"
+        if " " in make_key:
+            by_make.setdefault(make_key.split()[0], []).append(item)
+
     for _, row in data.iterrows():
-        local = get_local_price(session, row["make"], row["model"], int(row["year"]))
-        if not local:
+        try:
+            if pd.isna(row.get("year")) or pd.isna(row.get("price_usd")):
+                continue
+            year = int(float(row["year"]))
+            local = _local_price_from_index(
+                row["make"], row["model"], year, by_make_year, by_make
+            )
+            if not local:
+                continue
+
+            cost = estimate_for_listing(row, local_market_kes=local)
+
+            rows.append(
+                {
+                    "listing_id": row.get("id"),
+                    "vehicle": f"{row['make']} {row['model']} {year}",
+                    "purchase_usd": cost.purchase_price_usd,
+                    "shipping_usd": cost.shipping_usd,
+                    "cf_price_usd": cost.cf_price_usd,
+                    "kra_taxes_kes": (
+                        cost.import_duty_kes + cost.excise_duty_kes + cost.vat_kes + cost.rdl_kes + cost.idf_kes
+                    ),
+                    "port_clearing_reg_kes": cost.port_charges_kes + cost.clearing_fees_kes + cost.registration_kes,
+                    "other_charges_kes": cost.other_charges_kes,
+                    "total_import_kes": cost.total_import_kes,
+                    "local_market_kes": local,
+                    "savings_kes": cost.potential_savings_kes,
+                    "savings_pct": round((cost.potential_savings_kes or 0) / local * 100, 1) if local else 0,
+                }
+            )
+        except (TypeError, ValueError, KeyError):
             continue
-
-        cost = estimate_for_listing(row, local_market_kes=local)
-
-        rows.append(
-            {
-                "listing_id": row.get("id"),
-                "vehicle": f"{row['make']} {row['model']} {int(row['year'])}",
-                "purchase_usd": cost.purchase_price_usd,
-                "shipping_usd": cost.shipping_usd,
-                "cf_price_usd": cost.cf_price_usd,
-                "kra_taxes_kes": (
-                    cost.import_duty_kes + cost.excise_duty_kes + cost.vat_kes + cost.rdl_kes + cost.idf_kes
-                ),
-                "port_clearing_reg_kes": cost.port_charges_kes + cost.clearing_fees_kes + cost.registration_kes,
-                "other_charges_kes": cost.other_charges_kes,
-                "total_import_kes": cost.total_import_kes,
-                "local_market_kes": local,
-                "savings_kes": cost.potential_savings_kes,
-                "savings_pct": round((cost.potential_savings_kes or 0) / local * 100, 1) if local else 0,
-            }
-        )
 
     return pd.DataFrame(rows)
 

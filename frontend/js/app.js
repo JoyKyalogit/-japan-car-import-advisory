@@ -291,11 +291,18 @@ function renderCompareChart(b) {
       datasets: [{
         data: [b.total_import_kes, b.local_market_kes],
         backgroundColor: ["#e63946", "#9aa3b8"],
+        borderRadius: 6,
+        maxBarThickness: 72,
       }],
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false }, title: { display: true, text: "Import vs Local", color: "#f0f2f8" } },
-      scales: { y: { ticks: { color: "#9aa3b8" } }, x: { ticks: { color: "#9aa3b8" } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { color: "#9aa3b8" }, grid: { color: "rgba(154,163,184,0.15)" } },
+        x: { ticks: { color: "#9aa3b8" }, grid: { display: false } },
+      },
     },
   });
 }
@@ -322,7 +329,12 @@ function renderBreakdownChart(b) {
       datasets: [{ data: items.map((i) => i[1]), backgroundColor: ["#e63946","#457b9d","#1d3557","#f4a261","#2a9d8f","#e9c46a","#6c757d"] }],
     },
     options: {
-      plugins: { title: { display: true, text: "Cost Breakdown", color: "#f0f2f8" } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: "Cost Breakdown", color: "#f0f2f8" },
+        legend: { position: "bottom", labels: { color: "#9aa3b8", boxWidth: 12 } },
+      },
     },
   });
 }
@@ -415,6 +427,8 @@ async function loadMarketData() {
         datasets: [{ label: "Avg USD", data: data.by_make.map((m) => m.avg_usd), backgroundColor: "#e63946" }],
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: { title: { display: true, text: "Average Price by Make", color: "#f0f2f8" } },
         scales: { y: { ticks: { color: "#9aa3b8" } }, x: { ticks: { color: "#9aa3b8" } } },
       },
@@ -424,17 +438,27 @@ async function loadMarketData() {
 
 // ── Savings ─────────────────────────────────────────────────────────────
 async function loadSavings() {
-  const data = await fetchJson(`${API}/savings`);
-  const s = data.summary;
+  const summaryEl = document.getElementById("savings-summary");
+  const tbody = document.querySelector("#savings-table tbody");
+  summaryEl.innerHTML = `<div class="metric-card"><label>Loading</label><span>…</span></div>`;
+  tbody.innerHTML = "";
 
-  document.getElementById("savings-summary").innerHTML = `
+  const data = await fetchJson(`${API}/savings`);
+  const s = data.summary || {};
+  const items = data.items || [];
+
+  summaryEl.innerHTML = `
     <div class="metric-card"><label>Vehicles Analysed</label><span>${s.total ?? 0}</span></div>
     <div class="metric-card"><label>Avg Savings</label><span>${s.avg_savings_pct ?? 0}%</span></div>
     <div class="metric-card"><label>Import Cheaper</label><span>${s.import_cheaper ?? 0} / ${s.total ?? 0}</span></div>
   `;
 
-  const tbody = document.querySelector("#savings-table tbody");
-  tbody.innerHTML = data.items.slice(0, 50).map((r) => `
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="5">No matched Japan ↔ Kenya prices yet. Re-scrape or check local market data.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.slice(0, 50).map((r) => `
     <tr>
       <td>${r.vehicle}</td>
       <td>${fmtKes(r.total_import_kes)}</td>
@@ -446,7 +470,7 @@ async function loadSavings() {
 
   const ctx = document.getElementById("savings-chart");
   if (savingsChart) savingsChart.destroy();
-  const top = data.items.slice(0, 10);
+  const top = items.slice(0, 10);
   if (top.length) {
     savingsChart = new Chart(ctx, {
       type: "bar",
@@ -458,6 +482,8 @@ async function loadSavings() {
         ],
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: { title: { display: true, text: "Top 10 — Import vs Local", color: "#f0f2f8" } },
         scales: { y: { ticks: { color: "#9aa3b8" } }, x: { ticks: { color: "#9aa3b8", maxRotation: 45 } } },
       },

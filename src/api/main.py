@@ -319,9 +319,16 @@ def savings():
     if df.empty:
         return {"summary": {}, "items": []}
 
+    # Prefer a mix of makes so the tab is not only the first scrape batch.
+    if len(df) > 200 and "make" in df.columns:
+        parts = []
+        for _, group in df.groupby(df["make"].astype(str), sort=False):
+            parts.append(group.head(max(8, 200 // max(df["make"].nunique(), 1))))
+        df = pd.concat(parts, ignore_index=True).head(200)
+
     session = get_session()
     try:
-        savings_df = build_savings_analysis(session, df)
+        savings_df = build_savings_analysis(session, df, limit=200)
     finally:
         session.close()
 

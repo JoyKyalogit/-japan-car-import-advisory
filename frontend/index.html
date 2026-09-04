@@ -11,7 +11,7 @@
   <header class="header">
     <div class="header-inner">
       <div>
-        <h1>🚗 Japan Car Import Advisory</h1>
+        <h1>Japan Car Import Advisory</h1>
         <p>Compare import costs from Japan vs buying locally in Kenya</p>
       </div>
       <div class="stats-bar" id="stats-bar">
@@ -88,8 +88,12 @@
         <div id="recommendation" class="banner"></div>
 
         <div class="charts">
-          <canvas id="compare-chart"></canvas>
-          <canvas id="breakdown-chart"></canvas>
+          <div class="chart-box">
+            <canvas id="compare-chart"></canvas>
+          </div>
+          <div class="chart-box chart-box--donut">
+            <canvas id="breakdown-chart"></canvas>
+          </div>
         </div>
 
         <details class="breakdown-details">
@@ -157,7 +161,9 @@
           <tbody></tbody>
         </table>
       </div>
-      <canvas id="market-chart"></canvas>
+      <div class="chart-box chart-box--wide">
+        <canvas id="market-chart"></canvas>
+      </div>
     </section>
 
     <!-- Savings Analysis -->
@@ -172,7 +178,9 @@
           <tbody></tbody>
         </table>
       </div>
-      <canvas id="savings-chart"></canvas>
+      <div class="chart-box chart-box--wide">
+        <canvas id="savings-chart"></canvas>
+      </div>
     </section>
   </main>
 

@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS import_cost_estimates (
   <header class="header">
     <div class="header-inner">
       <div>
-        <h1>🚗 Japan Car Import Advisory</h1>
+        <h1>Japan Car Import Advisory</h1>
         <p>Compare import costs from Japan vs buying locally in Kenya</p>
       </div>
       <div class="stats-bar" id="stats-bar">
