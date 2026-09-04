@@ -6,24 +6,7 @@ Built to demonstrate practical skills across **web scraping, ETL, domain costing
 
 ## Live demo
 
-**[Open live demo](https://japan-car-import-advisory.onrender.com)**
-
-Hosted on Render (free tier). The first load after idle time can take ~30–60 seconds while the service wakes up.
-
-### Deploy on Render (free)
-
-1. Go to [https://render.com](https://render.com) → **New** → **Blueprint**
-2. Connect GitHub and select this repository
-3. Render reads `render.yaml` and builds the Docker image with the bundled demo database (~1,700 Japan listings + ~1,600 Kenya price groups)
-4. When the service is **Live**, open the `.onrender.com` URL
-
-Local-only preview:
-
-```bash
-uv run python scripts/run_server.py
-```
-
-Open http://127.0.0.1:8003
+**[https://japan-car-import-advisory.onrender.com](https://japan-car-import-advisory.onrender.com)**
 
 ---
 
